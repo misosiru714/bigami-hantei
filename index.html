@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シノビガミ 判定ツール</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #f5f2ec;
+  --surface: #ffffff;
+  --surface2: #f8f5f0;
+  --border: #d8d0c4;
+  --border-dark: #b8a898;
+  --accent: #7a4f2a;
+  --accent2: #9b6535;
+  --accent-light: #f0e6d8;
+  --text: #2a1f14;
+  --text-muted: #7a6a58;
+  --text-dim: #aa9a88;
+  --gap-bg: #e8ddd0;
+  --gap-border: #c8b8a8;
+  --gap-filled-bg: #8b4040;
+  --gap-filled-border: #6a2828;
+  --skill-bg: #ffffff;
+  --skill-border: #d8d0c4;
+  --skill-learned-bg: #eaf2ea;
+  --skill-learned-border: #5a9a5a;
+  --skill-learned-text: #2a6a2a;
+  --judgment-bg: #fdf5e6;
+  --judgment-border: #c8960a;
+  --judgment-text: #7a5000;
+  --red: #c84040;
+  --green: #3a8a3a;
+  --shadow: rgba(80,50,20,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  padding: 20px 0 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border-dark);
+}
+header h1 {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+}
+header p {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  letter-spacing: 0.1em;
+}
+
+.main-layout {
+  display: flex;
+  gap: 20px;
+  max-width: 1300px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.left-col { flex: 1; min-width: 300px; }
+.right-col { width: 360px; flex-shrink: 0; }
+
+.section-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  color: var(--accent2);
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.options-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 4px var(--shadow);
+}
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+.option-item input[type=checkbox] {
+  width: 14px; height: 14px;
+  accent-color: var(--accent2);
+  cursor: pointer;
+}
+
+.skill-grid-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 10px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+/* 列構成(左→右):
+   gap_FA | col0器術 | gap_AB | col1体術 | gap_BC | col2忍術 | gap_CD | col3謀術 | gap_DE | col4戦術 | gap_EF | col5妖術 | rownum
+   = 6ギャップ列 + 6特技列 + 1行番号列 = 13列
+*/
+.skill-grid {
+  display: grid;
+  grid-template-columns: 16px 80px 16px 80px 16px 80px 16px 80px 16px 80px 16px 80px 22px;
+  gap: 3px 0;
+  min-width: 660px;
+}
+
+.col-header {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 4px 2px 6px;
+  letter-spacing: 0.05em;
+  font-family: 'Noto Serif JP', serif;
+}
+.col-header span {
+  display: block;
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+.gap-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+}
+.gap-check {
+  width: 11px; height: 11px;
+  cursor: pointer;
+  accent-color: var(--gap-filled-bg);
+}
+
+.skill-cell {
+  background: var(--skill-bg);
+  border: 1px solid var(--skill-border);
+  border-radius: 3px;
+  padding: 4px 3px;
+  text-align: center;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  user-select: none;
+  line-height: 1.3;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+.skill-cell:hover { border-color: var(--accent2); background: var(--accent-light); color: var(--accent); }
+.skill-cell.learned { background: var(--skill-learned-bg); border-color: var(--skill-learned-border); color: var(--skill-learned-text); font-weight: 500; }
+.skill-cell.judgment-target { background: var(--judgment-bg); border-color: var(--judgment-border); color: var(--judgment-text); font-weight: 700; box-shadow: 0 0 0 2px rgba(200,150,10,0.2); }
+.skill-cell.learned.judgment-target { background: #fdf0d0; }
+
+.gap-cell {
+  background: var(--gap-bg);
+  border: 1px solid var(--gap-border);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s;
+  min-height: 28px;
+}
+.gap-cell:hover { background: #ddd0c0; }
+.gap-cell.filled { background: var(--gap-filled-bg); border-color: var(--gap-filled-border); }
+.gap-cell.filled:hover { background: #a05050; }
+.gap-dot { width: 5px; height: 5px; border-radius: 50%; background: #c0b0a0; transition: background 0.12s; }
+.gap-cell.filled .gap-dot { background: #ffccaa; }
+
+.row-num {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.62rem; color: var(--text-dim); padding-left: 4px; min-height: 28px;
+}
+
+.judgment-display {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 4px var(--shadow);
+}
+.judgment-display label { font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.15em; display: block; margin-bottom: 4px; }
+.judgment-skill-name { font-family: 'Noto Serif JP', serif; font-size: 1.15rem; font-weight: 700; color: var(--judgment-text); min-height: 1.6rem; }
+.judgment-hint { font-size: 0.65rem; color: var(--text-dim); margin-top: 3px; }
+
+.result-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 2px 8px var(--shadow);
+  position: sticky;
+  top: 20px;
+}
+.result-list {
+  display: flex; flex-direction: column; gap: 5px;
+  margin-top: 10px; max-height: 72vh; overflow-y: auto;
+}
+.result-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 9px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+  transition: border-color 0.12s;
+}
+.result-item:hover { border-color: var(--border-dark); }
+.result-item.is-self { background: var(--judgment-bg); border-color: var(--judgment-border); }
+.ri-name { font-size: 0.72rem; color: var(--text-muted); width: 70px; flex-shrink: 0; }
+.ri-command { font-size: 0.78rem; color: var(--text); flex: 1; line-height: 1.5; word-break: break-all; }
+.result-item.is-self .ri-command { color: var(--judgment-text); font-weight: 700; }
+.ri-dist { font-size: 0.6rem; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
+.copy-btn {
+  background: var(--surface); border: 1px solid var(--border-dark); color: var(--text-muted);
+  padding: 3px 7px; border-radius: 3px; cursor: pointer; font-size: 0.65rem;
+  transition: all 0.12s; flex-shrink: 0; font-family: 'Noto Sans JP', sans-serif; white-space: nowrap;
+}
+.copy-btn:hover { background: var(--accent2); color: white; border-color: var(--accent2); }
+.copy-btn.copied { background: var(--green); border-color: var(--green); color: white; }
+
+.no-result { font-size: 0.76rem; color: var(--text-dim); text-align: center; padding: 24px 10px; line-height: 1.9; }
+
+.help-text { font-size: 0.66rem; color: var(--text-dim); margin-top: 8px; line-height: 2; }
+.help-text kbd {
+  display: inline-block; background: var(--surface); border: 1px solid var(--border-dark);
+  border-radius: 3px; padding: 0 5px; font-size: 0.63rem;
+  font-family: 'Noto Sans JP', sans-serif; color: var(--text-muted); margin-right: 3px;
+}
+.reset-btn {
+  width: 100%; margin-top: 10px; padding: 7px;
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: 'Noto Sans JP', sans-serif;
+  transition: all 0.12s;
+}
+.reset-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
+
+/* BCDice設定 */
+.bcdice-toggle-row { display: flex; align-items: center; }
+.bcdice-toggle-row label {
+  font-size: 0.78rem; color: var(--text-muted); cursor: pointer;
+  user-select: none; display: flex; align-items: center; gap: 6px;
+}
+.bcdice-toggle-row input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent2); cursor: pointer; }
+.bcdice-inputs {
+  display: none; margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border); gap: 10px; flex-wrap: wrap; align-items: center;
+}
+.bcdice-inputs.visible { display: flex; }
+.bcdice-field { display: flex; align-items: center; gap: 5px; }
+.bcdice-field label { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+.bcdice-field input {
+  width: 58px; padding: 4px 6px; border: 1px solid var(--border-dark); border-radius: 3px;
+  font-size: 0.75rem; font-family: 'Noto Sans JP', sans-serif;
+  color: var(--text); background: var(--surface); text-align: center;
+}
+.bcdice-field input:focus { outline: none; border-color: var(--accent2); }
+
+@media (max-width: 760px) {
+  .main-layout { flex-direction: column; }
+  .right-col { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>シノビガミ　判定ツール</h1>
+  <p>特技を設定し、代替判定コマンドを即座に生成</p>
+</header>
+
+<div class="main-layout">
+  <div class="left-col">
+    <div class="section-title">特技設定</div>
+    <div class="options-row">
+      <label class="option-item"><input type="checkbox" id="opt-makai"> 魔界工学（器術↔妖術ループ）</label>
+      <label class="option-item"><input type="checkbox" id="opt-mokuren"> 木蓮（行2↔行12ループ）</label>
+    </div>
+    <div class="skill-grid-wrap">
+      <div class="skill-grid" id="skill-grid"></div>
+    </div>
+    <div class="help-text">
+      <kbd>左クリック</kbd>習得切替　<kbd>右クリック</kbd>指定特技に設定　ギャップ列クリックでギャップ埋め切替
+    </div>
+    <button class="reset-btn" id="reset-btn">習得・設定をリセット</button>
+  </div>
+
+  <div class="right-col">
+    <div class="section-title">判定結果</div>
+    <div class="judgment-display">
+      <label>指定特技</label>
+      <div class="judgment-skill-name" id="judgment-name">（特技を右クリックで設定）</div>
+      <div class="judgment-hint" id="judgment-hint"></div>
+    </div>
+    <div class="options-row" style="flex-direction:column;gap:0;margin-bottom:14px;">
+      <div class="bcdice-toggle-row">
+        <label><input type="checkbox" id="opt-bcdice"> BCDice 3 形式で出力</label>
+      </div>
+      <div class="bcdice-inputs" id="bcdice-inputs">
+        <div class="bcdice-field">
+          <label>スペシャル値</label>
+          <input type="number" id="bc-special" placeholder="例: 10" min="2" max="12">
+        </div>
+        <div class="bcdice-field">
+          <label>ファンブル値</label>
+          <input type="number" id="bc-fumble" placeholder="例: 5" min="2" max="12">
+        </div>
+        <div class="bcdice-field">
+          <label>修正</label>
+          <input type="text" id="bc-modifier" placeholder="+2 / -1">
+        </div>
+      </div>
+    </div>
+    <div class="result-wrap">
+      <div class="section-title" style="margin-bottom:0">習得特技の判定値</div>
+      <div class="result-list" id="result-list">
+        <div class="no-result">指定特技を右クリックで設定し<br>習得特技を左クリックで追加してください</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLS = ['器術','体術','忍術','謀術','戦術','妖術'];
+const COL_IDS = ['A','B','C','D','E','F'];
+const ROWS = [2,3,4,5,6,7,8,9,10,11,12];
+const SKILLS = [
+  ['絡繰術','火術','水術','針術','仕込み','衣装術','縄術','登術','拷問術','壊器術','掘削術'],
+  ['騎乗術','砲術','手裏剣術','手練','身体操術','歩法','走法','飛術','骨法術','刀術','怪力'],
+  ['生存術','潜伏術','遁走術','盗聴術','腹話術','隠形術','変装術','香術','分身の術','隠蔽術','第六感'],
+  ['医術','毒術','罠術','調査術','詐術','対人術','遊芸','九ノ一の術','傀儡の術','流言の術','経済力'],
+  ['兵糧術','鳥獣術','野戦術','地の利','意気','用兵術','記憶術','見敵術','暗号術','伝達術','人脈'],
+  ['異形化','召喚術','死霊術','結界術','封術','言霊術','幻術','瞳術','千里眼の術','憑依術','呪術'],
+];
+
+// ギャップキー: 左→右の順で FA, AB, BC, CD, DE, EF
+// FA = 妖術(col5)と器術(col0)の間（魔界工学用・左端）
+const GAP_KEYS = ['FA','AB','BC','CD','DE','EF'];
+
+let learnedSkills = new Set(); // "col_rowIdx"
+let filledGaps = new Set();    // GAP_KEYS のいずれか
+let judgmentSkill = null;      // {col, rowIdx}
+
+function gapBetween(c1, c2) {
+  const lo = Math.min(c1,c2), hi = Math.max(c1,c2);
+  if (lo===0&&hi===1) return 'AB';
+  if (lo===1&&hi===2) return 'BC';
+  if (lo===2&&hi===3) return 'CD';
+  if (lo===3&&hi===4) return 'DE';
+  if (lo===4&&hi===5) return 'EF';
+  if (lo===0&&hi===5) return 'FA';
+  return null;
+}
+
+// c1→c2 の正順距離（c1 < c2 を前提）
+function colDistForward(c1, c2) {
+  let dist = 0;
+  for (let c = c1; c < c2; c++) {
+    const gk = gapBetween(c, c+1);
+    if (!filledGaps.has(gk)) dist++;
+    dist++;
+  }
+  return dist;
+}
+
+function calcDistance(fromCol, fromRow, toCol, toRow) {
+  const useMakai = document.getElementById('opt-makai').checked;
+  const useMokuren = document.getElementById('opt-mokuren').checked;
+
+  let cd;
+  if (fromCol === toCol) {
+    cd = 0;
+  } else {
+    const lo = Math.min(fromCol, toCol);
+    const hi = Math.max(fromCol, toCol);
+    const direct = colDistForward(lo, hi);
+    if (useMakai) {
+      // 逆回り: hi→5→(FAギャップ)→0→lo
+      // 例: 拷問術(A=0)→千里眼の術(F=5) : rightPart=0, faGap=1, 到達マス+1 = 2
+      const rightPart = colDistForward(hi, 5);  // hi→妖術(5)まで
+      const faGap = filledGaps.has('FA') ? 0 : 1;
+      const leftPart = lo > 0 ? 1 + colDistForward(0, lo) : 0; // col0のマス + 0→lo
+      const wrap = rightPart + faGap + 1 + leftPart; // +1は到達先のloマス自体
+      cd = Math.min(direct, wrap);
+    } else {
+      cd = direct;
+    }
+  }
+
+  const rowCount = ROWS.length;
+  const rdDirect = Math.abs(fromRow - toRow);
+  const rd = useMokuren ? Math.min(rdDirect, rowCount - rdDirect) : rdDirect;
+
+  return cd + rd;
+}
+
+function buildGrid() {
+  const grid = document.getElementById('skill-grid');
+  grid.innerHTML = '';
+
+  // ヘッダー行: gap_FA | col0 | gap_AB | col1 | ... | col5 | rownum空
+  for (let i = 0; i < 6; i++) {
+    const gk = GAP_KEYS[i]; // FA, AB, BC, CD, DE, EF
+    const ci = i; // col index 0〜5
+
+    // gap header
+    const gh = document.createElement('div');
+    gh.className = 'gap-header';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'gap-check';
+    cb.checked = filledGaps.has(gk);
+    cb.title = `ギャップ ${gk}`;
+    cb.addEventListener('change', () => {
+      if (cb.checked) filledGaps.add(gk); else filledGaps.delete(gk);
+      buildGrid(); updateResults();
+    });
+    gh.appendChild(cb);
+    grid.appendChild(gh);
+
+    // col header
+    const ch = document.createElement('div');
+    ch.className = 'col-header';
+    ch.innerHTML = `${COLS[ci]}<span>${COL_IDS[ci]}</span>`;
+    grid.appendChild(ch);
+  }
+  grid.appendChild(document.createElement('div')); // rownum空
+
+  // データ行
+  ROWS.forEach((rowNum, ri) => {
+    for (let i = 0; i < 6; i++) {
+      const gk = GAP_KEYS[i];
+      const ci = i;
+
+      // gap cell
+      const isFilled = filledGaps.has(gk);
+      const gc = document.createElement('div');
+      gc.className = 'gap-cell' + (isFilled ? ' filled' : '');
+      const dot = document.createElement('div');
+      dot.className = 'gap-dot';
+      gc.appendChild(dot);
+      gc.title = `ギャップ ${gk}`;
+      gc.addEventListener('click', () => {
+        if (filledGaps.has(gk)) filledGaps.delete(gk); else filledGaps.add(gk);
+        buildGrid(); updateResults();
+      });
+      grid.appendChild(gc);
+
+      // skill cell
+      const key = `${ci}_${ri}`;
+      const name = SKILLS[ci][ri];
+      const isLearned = learnedSkills.has(key);
+      const isJudgment = judgmentSkill && judgmentSkill.col===ci && judgmentSkill.rowIdx===ri;
+      const sc = document.createElement('div');
+      sc.className = 'skill-cell' + (isLearned ? ' learned' : '') + (isJudgment ? ' judgment-target' : '');
+      sc.textContent = name;
+      sc.title = `${name}（${COLS[ci]} ${rowNum}行）\n左クリック：習得切替 / 右クリック：指定特技に設定`;
+      sc.addEventListener('click', e => {
+        e.preventDefault();
+        if (learnedSkills.has(key)) learnedSkills.delete(key); else learnedSkills.add(key);
+        buildGrid(); updateResults();
+      });
+      sc.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        judgmentSkill = { col: ci, rowIdx: ri };
+        buildGrid(); updateResults();
+      });
+      grid.appendChild(sc);
+    }
+    const rn = document.createElement('div');
+    rn.className = 'row-num';
+    rn.textContent = rowNum;
+    grid.appendChild(rn);
+  });
+}
+
+function updateResults() {
+  const nameEl = document.getElementById('judgment-name');
+  const hintEl = document.getElementById('judgment-hint');
+  const listEl = document.getElementById('result-list');
+
+  if (!judgmentSkill) {
+    nameEl.textContent = '（特技を右クリックで設定）';
+    hintEl.textContent = '';
+    listEl.innerHTML = '<div class="no-result">指定特技を右クリックで設定し<br>習得特技を左クリックで追加してください</div>';
+    return;
+  }
+
+  const jName = SKILLS[judgmentSkill.col][judgmentSkill.rowIdx];
+  nameEl.textContent = jName;
+  hintEl.textContent = `${COLS[judgmentSkill.col]}・${ROWS[judgmentSkill.rowIdx]}行`;
+
+  const results = [];
+  const selfKey = `${judgmentSkill.col}_${judgmentSkill.rowIdx}`;
+
+  // 習得特技（指定特技自身を含む）
+  learnedSkills.forEach(key => {
+    const [c, r] = key.split('_').map(Number);
+    const isSelf = c === judgmentSkill.col && r === judgmentSkill.rowIdx;
+    const dist = isSelf ? 0 : calcDistance(judgmentSkill.col, judgmentSkill.rowIdx, c, r);
+    results.push({ useName: SKILLS[c][r], judgeName: jName, dist, isSelf });
+  });
+
+  results.sort((a,b) => a.dist - b.dist);
+
+  const useBcdice = document.getElementById('opt-bcdice').checked;
+  const bcSpecial = document.getElementById('bc-special').value.trim();
+  const bcFumble  = document.getElementById('bc-fumble').value.trim();
+  const bcModifier = document.getElementById('bc-modifier').value.trim();
+
+  function buildDice(target) {
+    if (useBcdice) {
+      let s = 'SG';
+      if (bcSpecial)  s += `@${bcSpecial}`;
+      if (bcFumble)   s += `#${bcFumble}`;
+      if (bcModifier) s += /^[+\-]/.test(bcModifier) ? bcModifier : `+${bcModifier}`;
+      return `${s}>=${target}`;
+    }
+    return `2D6>=${target}`;
+  }
+
+  listEl.innerHTML = '';
+  results.forEach(item => {
+    const target = 5 + item.dist;
+    const command = item.isSelf
+      ? `${buildDice(target)}　（判定：${item.useName}）`
+      : `${buildDice(target)}　（判定：${item.useName}、指定特技：${item.judgeName}）`;
+
+    const div = document.createElement('div');
+    div.className = 'result-item' + (item.isSelf ? ' is-self' : '');
+    div.innerHTML = `
+      <div class="ri-name">${item.useName}</div>
+      <div class="ri-command">${command}</div>
+      <div class="ri-dist">${item.dist}マス</div>
+      <button class="copy-btn" data-cmd="${command}">コピー</button>
+    `;
+    div.querySelector('.copy-btn').addEventListener('click', function() {
+      navigator.clipboard.writeText(this.dataset.cmd).then(() => {
+        this.textContent = '✓';
+        this.classList.add('copied');
+        setTimeout(() => { this.textContent = 'コピー'; this.classList.remove('copied'); }, 1400);
+      });
+    });
+    listEl.appendChild(div);
+  });
+}
+
+document.getElementById('opt-makai').addEventListener('change', () => { buildGrid(); updateResults(); });
+document.getElementById('opt-mokuren').addEventListener('change', () => { buildGrid(); updateResults(); });
+document.getElementById('opt-bcdice').addEventListener('change', function() {
+  document.getElementById('bcdice-inputs').classList.toggle('visible', this.checked);
+  updateResults();
+});
+['bc-special','bc-fumble','bc-modifier'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateResults);
+});
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (!confirm('習得設定・ギャップ・指定特技をリセットしますか？')) return;
+  learnedSkills.clear(); filledGaps.clear(); judgmentSkill = null;
+  buildGrid(); updateResults();
+});
+
+buildGrid();
+updateResults();
+</script>
+</body>
+</html>
